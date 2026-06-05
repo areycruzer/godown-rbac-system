@@ -22,15 +22,6 @@ class AuditLog(models.Model):
         # RBAC
         ROLE_ASSIGNED = "role_assigned", "Role Assigned"
         ROLE_REVOKED = "role_revoked", "Role Revoked"
-        # Invitations
-        MEMBER_INVITED = "member_invited", "Member Invited"
-        INVITATION_ACCEPTED = "invitation_accepted", "Invitation Accepted"
-        INVITATION_REVOKED = "invitation_revoked", "Invitation Revoked"
-        # Billing
-        SUBSCRIPTION_CREATED = "subscription_created", "Subscription Created"
-        SUBSCRIPTION_UPDATED = "subscription_updated", "Subscription Updated"
-        SUBSCRIPTION_CANCELED = "subscription_canceled", "Subscription Canceled"
-        PAYMENT_SUCCEEDED = "payment_succeeded", "Payment Succeeded"
         # Generic CRUD
         CREATE = "create", "Create"
         UPDATE = "update", "Update"
