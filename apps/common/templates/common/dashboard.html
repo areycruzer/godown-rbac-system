@@ -3,618 +3,759 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Godown — Multi-Tenant Administration Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Godown — Dynamic RBAC Administration</title>
+    <meta name="description" content="Multi-tenant RBAC administration console with feature controls and audit logging.">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-base: #0b0f19;
-            --bg-surface: #131a2c;
-            --bg-card: #1c253d;
-            --primary: #6366f1;
-            --primary-glow: rgba(99, 102, 241, 0.15);
-            --accent: #10b981;
-            --accent-glow: rgba(16, 185, 129, 0.15);
-            --danger: #ef4444;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #2e3a59;
-            --border-hover: #475a8a;
-            --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --bg: #f7f5f0;
+            --bg-warm: #efeae0;
+            --bg-card: #ffffff;
+            --bg-inset: #f0ece4;
+            --border: #ddd6c8;
+            --border-hover: #c4b8a5;
+
+            --text: #1c1917;
+            --text-secondary: #57534e;
+            --text-tertiary: #a8a29e;
+
+            --accent: #b45309;
+            --accent-hover: #92400e;
+            --accent-bg: #fef3c7;
+            --accent-border: #fbbf24;
+
+            --green: #166534;
+            --green-bg: #dcfce7;
+            --green-border: #86efac;
+
+            --red: #991b1b;
+            --red-bg: #fef2f2;
+            --red-border: #fca5a5;
+
+            --serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+            --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            font-family: var(--font-family);
-            line-height: 1.5;
-            padding: 2rem;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 14px;
+            line-height: 1.6;
             min-height: 100vh;
         }
 
-        header {
+        /* ── Top Bar ───────────────────────────── */
+        .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            padding: 0.875rem 2rem;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
+            background: var(--bg-card);
         }
-
-        .logo-container {
+        .topbar-brand {
             display: flex;
-            align-items: center;
-            gap: 0.75rem;
+            align-items: baseline;
+            gap: 0.625rem;
         }
-
-        .logo-icon {
-            width: 2.5rem;
-            height: 2.5rem;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
-            box-shadow: 0 4px 20px var(--primary-glow);
-        }
-
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-        }
-
-        h2 {
+        .topbar-brand h1 {
+            font-family: var(--serif);
             font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-main);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--text);
         }
-
-        .auth-status {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
+        .topbar-brand span {
             font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+            font-weight: 500;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
         }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+        }
 
-        .badge-success {
-            background-color: var(--accent-glow);
+        /* ── Badge system ──────────────────────── */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.625rem;
+            border-radius: 3px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            font-family: var(--mono);
+            line-height: 1.4;
+        }
+        .tag--amber {
+            background: var(--accent-bg);
             color: var(--accent);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid var(--accent-border);
         }
-
-        .badge-danger {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.3);
+        .tag--green {
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid var(--green-border);
         }
-
-        .badge-info {
-            background-color: var(--primary-glow);
-            color: var(--primary);
-            border: 1px solid rgba(99, 102, 241, 0.3);
+        .tag--red {
+            background: var(--red-bg);
+            color: var(--red);
+            border: 1px solid var(--red-border);
         }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 2rem;
-            align-items: start;
-        }
-
-        @media (max-width: 1024px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background-color: var(--bg-surface);
+        .tag--neutral {
+            background: var(--bg-inset);
+            color: var(--text-secondary);
             border: 1px solid var(--border);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-            transition: var(--transition);
         }
 
-        .card:hover {
+        /* ── Main Layout ───────────────────────── */
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 53px);
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+        }
+
+        /* ── Sidebar ───────────────────────────── */
+        .sidebar {
+            border-right: 1px solid var(--border);
+            background: var(--bg-card);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+        .sidebar-section-title {
+            font-family: var(--mono);
+            font-size: 0.625rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-tertiary);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.375rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* ── Form elements ─────────────────────── */
+        .field { margin-bottom: 0.875rem; }
+        .field:last-child { margin-bottom: 0; }
+        .field-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.01em;
+        }
+        input, select, textarea {
+            width: 100%;
+            background: var(--bg-inset);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.5rem 0.625rem;
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 0.8125rem;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.12);
+        }
+        input:hover, select:hover {
             border-color: var(--border-hover);
         }
 
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+        /* ── Buttons ───────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-family: var(--sans);
+            font-weight: 600;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+        .btn:active { transform: scale(0.98); }
+
+        .btn--primary {
+            background: var(--text);
+            color: var(--bg);
+            border-color: var(--text);
+        }
+        .btn--primary:hover {
+            background: #292524;
+            border-color: #292524;
+        }
+        .btn--primary:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
 
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
+        .btn--secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border-color: var(--border);
+        }
+        .btn--secondary:hover {
+            background: var(--bg-inset);
+            border-color: var(--border-hover);
         }
 
-        .tabs {
-            display: flex;
-            gap: 0.5rem;
-            background-color: var(--bg-surface);
-            padding: 0.5rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--border);
-            margin-bottom: 1rem;
+        .btn--accent {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .btn--accent:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+        .btn--accent:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
 
-        .tab-btn {
-            flex: 1;
+        .btn--full { width: 100%; }
+        .btn--sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        /* ── Context card ──────────────────────── */
+        .ctx-row {
+            display: flex;
+            align-items: baseline;
+            gap: 0.375rem;
+            flex-wrap: wrap;
+        }
+        .ctx-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-tertiary);
+            min-width: 60px;
+        }
+        .ctx-value {
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            color: var(--text);
+        }
+        .perm-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-top: 0.375rem;
+        }
+        .perm-tag {
+            font-family: var(--mono);
+            font-size: 0.625rem;
+            padding: 0.125rem 0.4rem;
+            background: var(--green-bg);
+            color: var(--green);
+            border-radius: 2px;
+            border: 1px solid var(--green-border);
+        }
+
+        /* ── Main content ──────────────────────── */
+        .main {
+            padding: 1.75rem 2rem;
+            overflow-y: auto;
+        }
+
+        /* ── Tab navigation ────────────────────── */
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.75rem;
+        }
+        .tab-nav button {
             background: none;
             border: none;
-            color: var(--text-muted);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            font-family: var(--font-family);
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .tab-btn.active {
-            background-color: var(--primary);
-            color: white;
-            box-shadow: 0 4px 15px var(--primary-glow);
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            color: var(--text-main);
-            font-family: var(--font-family);
-            font-size: 0.95rem;
-            transition: var(--transition);
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-        }
-
-        .btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-family: var(--font-family);
+            border-bottom: 2px solid transparent;
+            padding: 0.625rem 1.25rem;
+            font-family: var(--sans);
+            font-size: 0.8125rem;
             font-weight: 600;
-            font-size: 0.95rem;
+            color: var(--text-tertiary);
             cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            justify-content: center;
+            transition: color 0.15s ease, border-color 0.15s ease;
+            position: relative;
+            bottom: -1px;
+        }
+        .tab-nav button:hover {
+            color: var(--text-secondary);
+        }
+        .tab-nav button.active {
+            color: var(--text);
+            border-bottom-color: var(--text);
+        }
+        .tab-nav button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Section headings ──────────────────── */
+        .section-heading {
+            font-family: var(--serif);
+            font-size: 1.375rem;
+            font-weight: 700;
+            letter-spacing: -0.015em;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+        .section-desc {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+            max-width: 560px;
+            line-height: 1.55;
+        }
+
+        /* ── Cards ─────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1.25rem;
+        }
+        .card + .card { margin-top: 1rem; }
+        .card-title {
+            font-family: var(--sans);
+            font-size: 0.8125rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1rem;
+            display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 20px var(--primary-glow);
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 2px;
         }
 
-        .btn-secondary {
-            background-color: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-main);
+        /* ── Form grid inside cards ────────────── */
+        .form-row {
+            display: grid;
+            gap: 0.75rem;
+        }
+        .form-row--3 { grid-template-columns: 1fr 1fr 80px; }
+        .form-row--2 { grid-template-columns: 1fr 1fr; }
+        @media (max-width: 640px) {
+            .form-row--3, .form-row--2 { grid-template-columns: 1fr; }
         }
 
-        .btn-secondary:hover {
-            background-color: var(--bg-card);
-            border-color: var(--border-hover);
-            box-shadow: none;
-        }
-
-        .btn-accent {
-            background-color: var(--accent);
-        }
-
-        .btn-accent:hover {
-            box-shadow: 0 4px 20px var(--accent-glow);
-        }
-
+        /* ── Checkbox grid ─────────────────────── */
         .checkbox-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.75rem;
-            max-height: 200px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.375rem;
+            max-height: 160px;
             overflow-y: auto;
             border: 1px solid var(--border);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            background-color: var(--bg-card);
+            border-radius: 4px;
+            padding: 0.5rem;
+            background: var(--bg-inset);
         }
-
         .checkbox-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.375rem;
             cursor: pointer;
+            font-size: 0.75rem;
+            font-family: var(--mono);
+            color: var(--text-secondary);
+            padding: 0.2rem 0.25rem;
+            border-radius: 2px;
+            transition: background 0.1s ease;
         }
-
+        .checkbox-item:hover { background: var(--bg-warm); }
         .checkbox-item input {
             width: auto;
             cursor: pointer;
+            accent-color: var(--accent);
         }
 
-        .tab-panel {
-            display: none;
-        }
-
-        .tab-panel.active {
-            display: block;
-        }
-
-        /* Features Cards styling */
+        /* ── Feature flag cards ────────────────── */
         .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 0.75rem;
         }
-
         .feature-card {
-            background-color: var(--bg-card);
+            background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 0.75rem;
-            padding: 1rem;
+            border-radius: 6px;
+            padding: 1rem 1.125rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: var(--transition);
+            transition: border-color 0.15s ease;
+        }
+        .feature-card:hover { border-color: var(--border-hover); }
+        .feature-name {
+            font-family: var(--mono);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        .feature-status {
+            font-size: 0.6875rem;
+            color: var(--text-tertiary);
+            margin-top: 0.125rem;
         }
 
-        .feature-card:hover {
-            border-color: var(--border-hover);
-        }
-
-        /* Toggle switch */
+        /* ── Toggle switch ─────────────────────── */
         .switch {
             position: relative;
             display: inline-block;
-            width: 50px;
-            height: 26px;
+            width: 36px;
+            height: 20px;
+            flex-shrink: 0;
         }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
+        .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: var(--bg-surface);
+            inset: 0;
+            background: var(--bg-warm);
             border: 1px solid var(--border);
-            transition: .4s;
-            border-radius: 34px;
+            border-radius: 20px;
+            transition: all 0.2s ease;
         }
-
-        .slider:before {
+        .slider::before {
+            content: '';
             position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: var(--text-muted);
-            transition: .4s;
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-tertiary);
             border-radius: 50%;
+            transition: all 0.2s ease;
         }
+        input:checked + .slider { background: var(--green-bg); border-color: var(--green-border); }
+        input:checked + .slider::before { transform: translateX(16px); background: var(--green); }
 
-        input:checked + .slider {
-            background-color: var(--accent);
-            border-color: var(--accent);
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(24px);
-            background-color: white;
-        }
-
-        /* Audit Logs table */
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 0.75rem;
+        /* ── Audit table ───────────────────────── */
+        .table-wrap {
             border: 1px solid var(--border);
-            background-color: var(--bg-card);
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--bg-card);
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
-            text-align: left;
         }
-
-        th, td {
-            padding: 1rem;
+        th {
+            text-align: left;
+            padding: 0.625rem 0.875rem;
+            font-family: var(--mono);
+            font-size: 0.625rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+            background: var(--bg-inset);
             border-bottom: 1px solid var(--border);
         }
-
-        th {
-            background-color: var(--bg-surface);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
         td {
-            font-size: 0.9rem;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8125rem;
+            border-bottom: 1px solid var(--bg-inset);
+            vertical-align: top;
         }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(180, 83, 9, 0.02); }
         .code-block {
-            font-family: "Courier New", Courier, monospace;
-            background-color: rgba(0, 0, 0, 0.3);
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.8rem;
-            color: var(--accent);
-            white-space: pre-wrap;
-            max-width: 300px;
-            overflow-x: auto;
-        }
-
-        .notification {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            background-color: var(--bg-card);
+            font-family: var(--mono);
+            font-size: 0.6875rem;
+            background: var(--bg-inset);
+            padding: 0.375rem 0.5rem;
+            border-radius: 3px;
             border: 1px solid var(--border);
-            border-left: 4px solid var(--primary);
-            padding: 1rem 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            max-width: 260px;
+            overflow-x: auto;
+            line-height: 1.45;
+        }
+
+        /* ── Toast notification ────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--green);
+            padding: 0.75rem 1.125rem;
+            border-radius: 4px;
+            box-shadow: 0 8px 24px rgba(28, 25, 23, 0.08), 0 2px 8px rgba(28, 25, 23, 0.04);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text);
             z-index: 1000;
-            transform: translateY(150%);
-            transition: var(--transition);
+            transform: translateY(120%);
+            opacity: 0;
+            transition: transform 0.25s ease, opacity 0.25s ease;
         }
-
-        .notification.show {
+        .toast.show {
             transform: translateY(0);
+            opacity: 1;
+        }
+        .toast.toast--error {
+            border-left-color: var(--red);
         }
 
-        .flex-row {
+        /* ── Utility ───────────────────────────── */
+        .mt-sm { margin-top: 0.5rem; }
+        .mt-md { margin-top: 0.875rem; }
+        .gap-xs { gap: 0.25rem; }
+        .flex-wrap { display: flex; flex-wrap: wrap; }
+        .text-muted { color: var(--text-tertiary); }
+        .text-sm { font-size: 0.8125rem; }
+        .mono { font-family: var(--mono); }
+
+        /* ── Scrollbar refinement ──────────────── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+        /* ── Section row for header + action ───── */
+        .section-header {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo-container">
-            <div class="logo-icon">G</div>
-            <div>
-                <h1>Godown Control Center</h1>
-                <p style="font-size: 0.8rem; color: var(--text-muted);">Multi-Tenant Administration Console</p>
-            </div>
+    <!-- ═══ Top Bar ═══ -->
+    <div class="topbar">
+        <div class="topbar-brand">
+            <h1>godown</h1>
+            <span>RBAC Console</span>
         </div>
-        <div class="auth-status">
-            <span id="authBadge" class="badge badge-danger">Not Authenticated</span>
-            <span id="tenantBadge" class="badge badge-info" style="display: none;">Tenant One</span>
-        </div>
-    </header>
-
-    <div class="grid">
-        <!-- Sidebar controls -->
-        <div class="sidebar">
-            <!-- Authentication Panel -->
-            <div class="card">
-                <h2>1. Connection Profile</h2>
-                <div class="form-group">
-                    <label for="tenantId">Tenant / Organization</label>
-                    <select id="tenantId" onchange="switchTenant()">
-                        <option value="00000000-0000-4000-8000-000000000001" selected>Tenant One (Localhost)</option>
-                        <option value="00000000-0000-4000-8000-000000000002">Tenant Two (Localhost)</option>
-                    </select>
-                </div>
-                <div id="loginForm">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" value="admin@tenant1.localhost">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" value="password123">
-                    </div>
-                    <button class="btn" style="width: 100%;" onclick="login()">Authenticate Client</button>
-                </div>
-                <div id="logoutForm" style="display: none;">
-                    <div class="form-group" style="margin-bottom: 0.5rem;">
-                        <label>Active User</label>
-                        <p id="loggedUser" style="font-weight: 500;"></p>
-                    </div>
-                    <button class="btn btn-secondary" style="width: 100%;" onclick="logout()">Disconnect</button>
-                </div>
-            </div>
-
-            <!-- Current User Context Summary -->
-            <div class="card" id="contextCard" style="display: none;">
-                <h2>2. Active Auth Context</h2>
-                <div class="form-group" style="margin-bottom: 0.75rem;">
-                    <label>Assigned Role</label>
-                    <div class="flex-row">
-                        <span id="ctxRole" class="badge badge-info">-</span>
-                        <span id="ctxWeight" class="badge badge-success">Weight: -</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Granted Permissions</label>
-                    <div id="ctxPermissions" class="flex-row" style="gap: 0.25rem;">
-                        <!-- badged elements -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Workspace -->
-        <div class="main-content">
-            <div class="tabs">
-                <button id="tabBtn1" class="tab-btn active" onclick="switchTab(1)">Dynamic RBAC</button>
-                <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">Feature Flags</button>
-                <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">Audit Logging</button>
-            </div>
-
-            <!-- TAB 1: Dynamic RBAC -->
-            <div id="tab1" class="tab-panel active">
-                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                    <!-- Create Custom Role Card -->
-                    <div class="card">
-                        <h2>Create Custom Role Definition</h2>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 1rem;">
-                            <div class="form-group">
-                                <label for="roleName">Role Name</label>
-                                <input type="text" id="roleName" placeholder="e.g. Procurement Officer">
-                            </div>
-                            <div class="form-group">
-                                <label for="roleSlug">Role Slug</label>
-                                <input type="text" id="roleSlug" placeholder="e.g. procurement-officer">
-                            </div>
-                            <div class="form-group">
-                                <label for="roleWeight">Weight</label>
-                                <input type="number" id="roleWeight" value="15">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Attach Permissions Registry</label>
-                            <div id="permissionsCheckboxList" class="checkbox-grid">
-                                <!-- Loaded dynamically -->
-                            </div>
-                        </div>
-                        <button class="btn btn-accent" onclick="createCustomRole()">Define Custom Role</button>
-                    </div>
-
-                    <!-- Assign Role Card -->
-                    <div class="card">
-                        <h2>Assign Workspace Role to Member</h2>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label for="assignUserId">Target User ID (Numeric pk)</label>
-                                <input type="number" id="assignUserId" value="1" placeholder="User ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="assignRoleSlug">Workspace Role Slug</label>
-                                <select id="assignRoleSlug">
-                                    <option value="owner">owner</option>
-                                    <option value="admin">admin</option>
-                                    <option value="member">member</option>
-                                    <!-- Custom roles appended here -->
-                                </select>
-                            </div>
-                        </div>
-                        <button class="btn" onclick="assignUserRole()">Modify Role Assignment</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 2: Feature Flags -->
-            <div id="tab2" class="tab-panel">
-                <div class="card">
-                    <h2>Workspace Feature Flag Registry</h2>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
-                        Toggles below enforce dynamic capability locks. Global values fall back dynamically unless tenant specific overrides exist.
-                    </p>
-                    <div class="feature-grid" id="featureFlagsGrid">
-                        <!-- Loaded dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: Audit Logging -->
-            <div id="tab3" class="tab-panel">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h2>Live Organization Audit Trail</h2>
-                        <button class="btn btn-secondary" onclick="fetchAuditLogs()">Refresh Logs</button>
-                    </div>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Action</th>
-                                    <th>Target Resource</th>
-                                    <th>Actor</th>
-                                    <th>Delta Changes</th>
-                                    <th>IP / Agent</th>
-                                </tr>
-                            </thead>
-                            <tbody id="auditLogsBody">
-                                <!-- Loaded dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        <div class="topbar-right">
+            <span id="authBadge" class="tag tag--red">unauthenticated</span>
+            <span id="tenantBadge" class="tag tag--neutral" style="display: none;"></span>
         </div>
     </div>
 
-    <!-- Notification Toast -->
-    <div id="toast" class="notification">
-        <span id="toastMessage">Console Connection Updated</span>
+    <!-- ═══ Layout ═══ -->
+    <div class="layout">
+
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar">
+
+            <!-- Connection -->
+            <div>
+                <div class="sidebar-section-title">Connection</div>
+                <div class="field">
+                    <label class="field-label" for="tenantId">Organization</label>
+                    <select id="tenantId" onchange="switchTenant()">
+                        <option value="00000000-0000-4000-8000-000000000001" selected>Tenant One</option>
+                        <option value="00000000-0000-4000-8000-000000000002">Tenant Two</option>
+                    </select>
+                </div>
+                <div id="loginForm">
+                    <div class="field">
+                        <label class="field-label" for="username">Username</label>
+                        <input type="text" id="username" value="admin@tenant1.localhost">
+                    </div>
+                    <div class="field">
+                        <label class="field-label" for="password">Password</label>
+                        <input type="password" id="password" value="password123">
+                    </div>
+                    <button class="btn btn--primary btn--full mt-sm" onclick="login()">Authenticate</button>
+                </div>
+                <div id="logoutForm" style="display: none;">
+                    <div class="field">
+                        <label class="field-label">Active user</label>
+                        <p id="loggedUser" class="mono text-sm" style="margin-top: 0.125rem;"></p>
+                    </div>
+                    <button class="btn btn--secondary btn--full mt-sm" onclick="logout()">Disconnect</button>
+                </div>
+            </div>
+
+            <!-- Auth Context -->
+            <div id="contextCard" style="display: none;">
+                <div class="sidebar-section-title">Auth Context</div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div class="ctx-row">
+                        <span class="ctx-label">Role</span>
+                        <span id="ctxRole" class="tag tag--amber">—</span>
+                    </div>
+                    <div class="ctx-row">
+                        <span class="ctx-label">Weight</span>
+                        <span id="ctxWeight" class="ctx-value">—</span>
+                    </div>
+                    <div>
+                        <span class="ctx-label">Permissions</span>
+                        <div id="ctxPermissions" class="perm-list">
+                            <!-- dynamic -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- ── Main ── -->
+        <main class="main">
+
+            <nav class="tab-nav">
+                <button id="tabBtn1" class="active" onclick="switchTab(1)">Roles &amp; Access</button>
+                <button id="tabBtn2" onclick="switchTab(2)">Feature Flags</button>
+                <button id="tabBtn3" onclick="switchTab(3)">Audit Trail</button>
+            </nav>
+
+            <!-- TAB 1 ── Dynamic RBAC ── -->
+            <div id="tab1" class="tab-panel active">
+
+                <div class="section-heading">Role Management</div>
+                <p class="section-desc">
+                    Define custom roles with granular permissions and assign them to organization members.
+                    Roles are tenant-scoped and weighted for hierarchical access control.
+                </p>
+
+                <div class="card">
+                    <div class="card-title">New Role Definition</div>
+                    <div class="form-row form-row--3">
+                        <div class="field">
+                            <label class="field-label" for="roleName">Role name</label>
+                            <input type="text" id="roleName" placeholder="Procurement Officer">
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="roleSlug">Slug</label>
+                            <input type="text" id="roleSlug" placeholder="procurement-officer">
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="roleWeight">Weight</label>
+                            <input type="number" id="roleWeight" value="15">
+                        </div>
+                    </div>
+                    <div class="field mt-sm">
+                        <label class="field-label">Permissions</label>
+                        <div id="permissionsCheckboxList" class="checkbox-grid">
+                            <!-- Loaded dynamically -->
+                        </div>
+                    </div>
+                    <button class="btn btn--accent mt-md" onclick="createCustomRole()">Create Role</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Assign Role</div>
+                    <div class="form-row form-row--2">
+                        <div class="field">
+                            <label class="field-label" for="assignUserId">User ID</label>
+                            <input type="number" id="assignUserId" value="1" placeholder="Numeric PK">
+                        </div>
+                        <div class="field">
+                            <label class="field-label" for="assignRoleSlug">Role</label>
+                            <select id="assignRoleSlug">
+                                <option value="owner">owner</option>
+                                <option value="admin">admin</option>
+                                <option value="member">member</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn--primary mt-md" onclick="assignUserRole()">Assign</button>
+                </div>
+            </div>
+
+            <!-- TAB 2 ── Feature Flags ── -->
+            <div id="tab2" class="tab-panel">
+
+                <div class="section-heading">Feature Flags</div>
+                <p class="section-desc">
+                    Toggle capabilities per tenant. Changes propagate immediately to all
+                    authenticated sessions within the organization.
+                </p>
+
+                <div id="featureFlagsGrid" class="feature-grid">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- TAB 3 ── Audit Trail ── -->
+            <div id="tab3" class="tab-panel">
+
+                <div class="section-header">
+                    <div>
+                        <div class="section-heading">Audit Trail</div>
+                        <p class="section-desc" style="margin-bottom: 0;">
+                            Chronological record of all mutations, logins, and permission changes within the organization.
+                        </p>
+                    </div>
+                    <button class="btn btn--secondary btn--sm" onclick="fetchAuditLogs()">Refresh</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Resource</th>
+                                <th>Actor</th>
+                                <th>Changes</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogsBody">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ═══ Toast ═══ -->
+    <div id="toast" class="toast">
+        <span id="toastMessage"></span>
     </div>
 
     <script>
         let token = localStorage.getItem("jwt_token") || null;
         let activeTab = 1;
-        const apiBaseUrl = ""; // same origin since it is served by Django
+        const apiBaseUrl = "";
 
         window.onload = function() {
             if (token) {
@@ -628,33 +769,30 @@
             const toast = document.getElementById("toast");
             const msgSpan = document.getElementById("toastMessage");
             msgSpan.innerText = message;
-            toast.style.borderLeftColor = type === 'error' ? 'var(--danger)' : 'var(--primary)';
+            if (type === 'error') {
+                toast.classList.add("toast--error");
+            } else {
+                toast.classList.remove("toast--error");
+            }
             toast.classList.add("show");
-            setTimeout(() => {
-                toast.classList.remove("show");
-            }, 3000);
+            setTimeout(() => toast.classList.remove("show"), 3000);
         }
 
         async function login() {
             const user = document.getElementById("username").value;
             const pass = document.getElementById("password").value;
-
             try {
                 const res = await fetch(`${apiBaseUrl}/api/v1/auth/token/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: user, password: pass })
                 });
-
-                if (!res.ok) throw new Error("Invalid connection credentials.");
-
+                if (!res.ok) throw new Error("Invalid credentials.");
                 const data = await res.json();
                 token = data.access;
                 localStorage.setItem("jwt_token", token);
                 showLoggedIn();
-                showNotification("Client Authenticated Successfully!");
-                
-                // Fetch dynamic metadata
+                showNotification("Authenticated successfully");
                 fetchPermissions();
                 fetchActiveContext();
             } catch (err) {
@@ -668,19 +806,18 @@
             document.getElementById("loginForm").style.display = "block";
             document.getElementById("logoutForm").style.display = "none";
             document.getElementById("contextCard").style.display = "none";
-            document.getElementById("authBadge").className = "badge badge-danger";
-            document.getElementById("authBadge").innerText = "Not Authenticated";
+            document.getElementById("authBadge").className = "tag tag--red";
+            document.getElementById("authBadge").innerText = "unauthenticated";
             document.getElementById("tenantBadge").style.display = "none";
-            showNotification("Client Disconnected.");
+            showNotification("Disconnected");
         }
 
         function showLoggedIn() {
             document.getElementById("loginForm").style.display = "none";
             document.getElementById("logoutForm").style.display = "block";
             document.getElementById("loggedUser").innerText = document.getElementById("username").value;
-            document.getElementById("authBadge").className = "badge badge-success";
-            document.getElementById("authBadge").innerText = "Connected";
-            
+            document.getElementById("authBadge").className = "tag tag--green";
+            document.getElementById("authBadge").innerText = "connected";
             const sel = document.getElementById("tenantId");
             const label = sel.options[sel.selectedIndex].text;
             document.getElementById("tenantBadge").style.display = "inline-flex";
@@ -698,10 +835,9 @@
         async function fetchActiveContext() {
             const tenantId = document.getElementById("tenantId").value;
             if (!token) return;
-
             try {
                 const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/me/`, {
-                    headers: { 
+                    headers: {
                         'Authorization': `Bearer ${token}`,
                         'X-Tenant-ID': tenantId
                     }
@@ -710,36 +846,33 @@
                 const data = await res.json();
 
                 document.getElementById("contextCard").style.display = "block";
-                
+
                 const roleBadge = document.getElementById("ctxRole");
-                const weightBadge = document.getElementById("ctxWeight");
-                
+                const weightVal = document.getElementById("ctxWeight");
+
                 if (data.role) {
                     roleBadge.innerText = data.role.name;
-                    roleBadge.className = "badge badge-info";
-                    weightBadge.innerText = `Weight: ${data.role.weight}`;
+                    roleBadge.className = "tag tag--amber";
+                    weightVal.innerText = data.role.weight;
                 } else {
-                    roleBadge.innerText = "No Role";
-                    roleBadge.className = "badge badge-danger";
-                    weightBadge.innerText = "Weight: 0";
+                    roleBadge.innerText = "none";
+                    roleBadge.className = "tag tag--red";
+                    weightVal.innerText = "0";
                 }
 
-                // Render permissions
                 const permDiv = document.getElementById("ctxPermissions");
                 permDiv.innerHTML = "";
                 if (data.permissions && data.permissions.length > 0) {
                     data.permissions.forEach(code => {
                         const s = document.createElement("span");
-                        s.className = "badge badge-success";
-                        s.style.fontSize = "0.7rem";
+                        s.className = "perm-tag";
                         s.innerText = code;
                         permDiv.appendChild(s);
                     });
                 } else {
-                    permDiv.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">None</span>`;
+                    permDiv.innerHTML = '<span class="text-muted" style="font-size:0.75rem;">none granted</span>';
                 }
 
-                // Update feature flags UI if active tab is features
                 if (activeTab === 2) {
                     renderFeaturesList(data.features || []);
                 }
@@ -755,16 +888,12 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
-                
                 const div = document.getElementById("permissionsCheckboxList");
                 div.innerHTML = "";
                 data.forEach(p => {
                     const label = document.createElement("label");
                     label.className = "checkbox-item";
-                    label.innerHTML = `
-                        <input type="checkbox" name="rolePerms" value="${p.code}">
-                        <span>${p.code}</span>
-                    `;
+                    label.innerHTML = `<input type="checkbox" name="rolePerms" value="${p.code}"><span>${p.code}</span>`;
                     div.appendChild(label);
                 });
             } catch (err) {
@@ -777,44 +906,35 @@
             const name = document.getElementById("roleName").value;
             const slug = document.getElementById("roleSlug").value;
             const weight = parseInt(document.getElementById("roleWeight").value) || 0;
-            
             const checkboxes = document.querySelectorAll('input[name="rolePerms"]:checked');
             const permission_codes = Array.from(checkboxes).map(cb => cb.value);
 
             if (!name || !slug) {
-                showNotification("Name and Slug are required.", 'error');
+                showNotification("Name and slug are required.", 'error');
                 return;
             }
-
             try {
                 const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/role-definitions/`, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
                         'X-Tenant-ID': tenantId
                     },
                     body: JSON.stringify({ name, slug, weight, permission_codes })
                 });
-
                 if (!res.ok) {
                     const error = await res.json();
-                    throw new Error(error.detail || "Failed to create custom role.");
+                    throw new Error(error.detail || "Failed to create role.");
                 }
-
-                showNotification("Custom Role Created Successfully!");
-                
-                // Append custom role to assign selector
+                showNotification("Role created: " + slug);
                 const select = document.getElementById("assignRoleSlug");
                 const opt = document.createElement("option");
                 opt.value = slug;
                 opt.text = slug;
                 select.appendChild(opt);
-
-                // Clear input fields
                 document.getElementById("roleName").value = "";
                 document.getElementById("roleSlug").value = "";
-                
             } catch (err) {
                 showNotification(err.message, 'error');
             }
@@ -824,29 +944,25 @@
             const tenantId = document.getElementById("tenantId").value;
             const userId = parseInt(document.getElementById("assignUserId").value);
             const roleSlug = document.getElementById("assignRoleSlug").value;
-
             if (!userId) {
                 showNotification("User ID is required.", 'error');
                 return;
             }
-
             try {
                 const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/roles/assign/`, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
                         'X-Tenant-ID': tenantId
                     },
                     body: JSON.stringify({ user_id: userId, role: roleSlug })
                 });
-
                 if (!res.ok) {
                     const error = await res.json();
                     throw new Error(error.detail || "Failed to assign role.");
                 }
-
-                showNotification("User Role Assigned Successfully!");
+                showNotification("Role assigned: " + roleSlug);
                 fetchActiveContext();
             } catch (err) {
                 showNotification(err.message, 'error');
@@ -854,24 +970,21 @@
         }
 
         async function renderFeaturesList(activeFeatures) {
-            const tenantId = document.getElementById("tenantId").value;
             const container = document.getElementById("featureFlagsGrid");
             container.innerHTML = "";
-
             const defaultFeatures = [
                 "procurement_v2_enabled",
                 "custom_routing_rules",
                 "advanced_audit_reports"
             ];
-
             defaultFeatures.forEach(feat => {
                 const isActive = activeFeatures.includes(feat);
                 const card = document.createElement("div");
                 card.className = "feature-card";
                 card.innerHTML = `
                     <div>
-                        <p style="font-weight: 600; font-size: 0.95rem;">${feat}</p>
-                        <p style="font-size: 0.75rem; color: var(--text-muted);">${isActive ? 'Active' : 'Locked'}</p>
+                        <p class="feature-name">${feat}</p>
+                        <p class="feature-status">${isActive ? 'Active' : 'Disabled'}</p>
                     </div>
                     <label class="switch">
                         <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleFeature('${feat}', this.checked)">
@@ -887,19 +1000,15 @@
             try {
                 const res = await fetch(`${apiBaseUrl}/api/v1/tenants/${tenantId}/features/toggle/`, {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`,
                         'X-Tenant-ID': tenantId
                     },
                     body: JSON.stringify({ name: name, is_active: isChecked })
                 });
-
-                if (!res.ok) {
-                    throw new Error("Unable to modify feature toggles.");
-                }
-
-                showNotification(`Feature toggle modified: ${name}`);
+                if (!res.ok) throw new Error("Failed to toggle feature.");
+                showNotification(`${name} → ${isChecked ? 'enabled' : 'disabled'}`);
                 fetchActiveContext();
             } catch (err) {
                 showNotification(err.message, 'error');
@@ -909,70 +1018,53 @@
         async function fetchAuditLogs() {
             const tenantId = document.getElementById("tenantId").value;
             const tbody = document.getElementById("auditLogsBody");
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading logs...</td></tr>`;
-
+            tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;">Loading…</td></tr>';
             try {
                 const res = await fetch(`${apiBaseUrl}/api/v1/audit-logs/`, {
-                    headers: { 
+                    headers: {
                         'Authorization': `Bearer ${token}`,
                         'X-Tenant-ID': tenantId
                     }
                 });
-
-                if (!res.ok) {
-                    throw new Error("Unable to retrieve audit logs.");
-                }
-
+                if (!res.ok) throw new Error("Failed to fetch audit logs.");
                 const data = await res.json();
                 tbody.innerHTML = "";
-
                 if (data.results && data.results.length > 0) {
                     data.results.forEach(log => {
                         const tr = document.createElement("tr");
                         const date = new Date(log.timestamp).toLocaleString();
-                        const actor = log.actor_email || "System/Signal";
-                        const ip = log.ip_address || "-";
-                        
-                        let deltaContent = `<span style="color: var(--text-muted);">No changes</span>`;
+                        const actor = log.actor_email || "system";
+                        const ip = log.ip_address || "—";
+                        let delta = '<span class="text-muted">—</span>';
                         if (log.changes && Object.keys(log.changes).length > 0) {
-                            deltaContent = `<pre class="code-block">${JSON.stringify(log.changes, null, 2)}</pre>`;
+                            delta = `<pre class="code-block">${JSON.stringify(log.changes, null, 2)}</pre>`;
                         }
-
                         tr.innerHTML = `
-                            <td>${date}</td>
-                            <td><span class="badge badge-info">${log.action}</span></td>
-                            <td>${log.resource_type} (${log.resource_id})</td>
-                            <td>${actor}</td>
-                            <td>${deltaContent}</td>
-                            <td>${ip}</td>
+                            <td style="white-space:nowrap;">${date}</td>
+                            <td><span class="tag tag--amber">${log.action}</span></td>
+                            <td><span class="mono text-sm">${log.resource_type}</span><br><span class="text-muted" style="font-size:0.6875rem;">${log.resource_id}</span></td>
+                            <td class="mono text-sm">${actor}</td>
+                            <td>${delta}</td>
+                            <td class="mono text-sm">${ip}</td>
                         `;
                         tbody.appendChild(tr);
                     });
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No audit trails generated yet.</td></tr>`;
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;">No audit records yet.</td></tr>';
                 }
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);">${err.message}</td></tr>`;
             }
         }
 
         function switchTab(tabNum) {
             activeTab = tabNum;
-            document.getElementById("tabBtn1").classList.remove("active");
-            document.getElementById("tabBtn2").classList.remove("active");
-            document.getElementById("tabBtn3").classList.remove("active");
-            document.getElementById("tab1").classList.remove("active");
-            document.getElementById("tab2").classList.remove("active");
-            document.getElementById("tab3").classList.remove("active");
-
+            document.querySelectorAll(".tab-nav button").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
             document.getElementById(`tabBtn${tabNum}`).classList.add("active");
             document.getElementById(`tab${tabNum}`).classList.add("active");
-
-            if (tabNum === 2) {
-                fetchActiveContext();
-            } else if (tabNum === 3) {
-                fetchAuditLogs();
-            }
+            if (tabNum === 2) fetchActiveContext();
+            else if (tabNum === 3) fetchAuditLogs();
         }
     </script>
 </body>

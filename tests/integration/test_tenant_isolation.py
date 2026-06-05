@@ -175,10 +175,39 @@ def test_health_endpoint_exempt_from_tenant_resolution():
     assert response.status_code == 200
 
 
-def test_api_endpoint_returns_404_for_unknown_host():
-    """An unregistered host hitting an API path gets 404 from the middleware."""
+def test_api_endpoint_passes_through_for_unknown_host():
+    """API paths from unknown hosts pass through with request.tenant = None.
+
+    Tenant scoping for API endpoints is handled by RBAC via URL kwargs
+    or the X-Tenant-ID header, not by hostname.
+    """
     client = _client_for("ghost.localhost")
-    response = client.get("/api/v1/auth/token/", content_type="application/json")
-    body = json.loads(response.content)
-    assert response.status_code == 404
-    assert body["error"] == "not_found"
+    # Should NOT be blocked by TenantMiddleware — returns 401 (unauthenticated)
+    response = client.post(
+        "/api/v1/auth/token/",
+        data=json.dumps({"username": "x", "password": "y"}),
+        content_type="application/json",
+    )
+    # 401 means the middleware let it through (auth failed, not tenant blocked)
+    assert response.status_code == 401
+
+
+def test_unknown_host_sets_tenant_to_none():
+    """An unregistered host sets request.tenant = None instead of returning 404."""
+    from apps.tenants.middleware import TenantMiddleware
+    from django.test import RequestFactory
+
+    rf = RequestFactory()
+    request = rf.get("/some-path/", SERVER_NAME="ghost.localhost")
+    request.META["HTTP_HOST"] = "ghost.localhost"
+
+    captured = {}
+
+    def _capture(req):
+        captured["tenant"] = req.tenant
+        from django.http import HttpResponse
+
+        return HttpResponse()
+
+    TenantMiddleware(_capture)(request)
+    assert captured["tenant"] is None

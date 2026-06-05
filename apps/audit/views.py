@@ -44,6 +44,18 @@ class AuditLogListView(ListAPIView):
 
     def get_queryset(self):
         tenant = getattr(self.request, "tenant", None)
+
+        # Fallback: resolve from X-Tenant-ID header when middleware exempts the path
+        if tenant is None:
+            from apps.tenants.models import Tenant  # noqa: PLC0415
+
+            tenant_id = self.request.headers.get("X-Tenant-ID")
+            if tenant_id:
+                try:
+                    tenant = Tenant.objects.get(id=tenant_id)
+                except (Tenant.DoesNotExist, ValueError):
+                    pass
+
         if tenant is None:
             return AuditLog.objects.none()
 

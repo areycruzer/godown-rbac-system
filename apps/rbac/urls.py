@@ -4,7 +4,6 @@ from apps.rbac.views import (
     AssignRoleView,
     PermissionListView,
     RevokeRoleView,
-    RoleCreateView,
     RoleDefinitionListView,
     TenantRoleListView,
     UserAuthContextView,
@@ -13,16 +12,11 @@ from apps.rbac.views import (
 urlpatterns = [
     # Global permission registry
     path("permissions/", PermissionListView.as_view(), name="rbac-permission-list"),
-    # Tenant-scoped role definitions
+    # Tenant-scoped role definitions (GET=list, POST=create)
     path(
         "<uuid:tenant_id>/role-definitions/",
         RoleDefinitionListView.as_view(),
         name="rbac-role-definition-list",
-    ),
-    path(
-        "<uuid:tenant_id>/role-definitions/create/",
-        RoleCreateView.as_view(),
-        name="rbac-role-create",
     ),
     # Tenant-scoped role assignments (memberships)
     path("<uuid:tenant_id>/roles/", TenantRoleListView.as_view(), name="rbac-role-list"),

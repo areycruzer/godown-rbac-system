@@ -42,6 +42,9 @@ _EXEMPT_PREFIXES: tuple[str, ...] = (
     "/static/",
 )
 
+# The root path (dashboard) is also exempt — matched exactly.
+_EXEMPT_EXACT: tuple[str, ...] = ("/",)
+
 _TENANT_CACHE_TTL = 300  # 5 minutes
 _NEGATIVE_CACHE_TTL = 60  # 1 minute for "not found" entries
 
@@ -80,7 +83,7 @@ class TenantMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        if any(request.path.startswith(p) for p in _EXEMPT_PREFIXES):
+        if any(request.path.startswith(p) for p in _EXEMPT_PREFIXES) or request.path in _EXEMPT_EXACT:
             request.tenant = None  # type: ignore[attr-defined]
             clear_tenant()
             return self.get_response(request)
@@ -90,16 +93,17 @@ class TenantMiddleware:
 
         tenant = self._resolve_tenant(host)
 
-        if tenant is None:
-            return _tenant_not_found(host)
-
-        if not tenant.is_active:
+        if tenant is not None and not tenant.is_active:
             log.warning("tenant.inactive", tenant_id=str(tenant.id))
             return _tenant_inactive()
 
+        # Set tenant on request (may be None for unrecognised hosts).
+        # Views that require a tenant resolve it from URL kwargs or
+        # X-Tenant-ID headers via HasRolePermission / _resolve_tenant().
         request.tenant = tenant  # type: ignore[attr-defined]
-        set_tenant_id(tenant.id)
-        structlog.contextvars.bind_contextvars(tenant_id=str(tenant.id))
+        if tenant is not None:
+            set_tenant_id(tenant.id)
+            structlog.contextvars.bind_contextvars(tenant_id=str(tenant.id))
         response = self.get_response(request)
         clear_tenant()
         return response
