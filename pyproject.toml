@@ -33,9 +33,7 @@ exclude = ["^tests/", "^conftest\\.py"]
 module = [
     "apps.tenants.*",
     "apps.rbac.*",
-    "apps.billing.*",
     "services.rbac.*",
-    "services.billing.*",
     "services.tenant_context",
 ]
 strict = true
@@ -49,14 +47,12 @@ warn_return_any = true
 module = [
     "apps.common.*",
     "apps.notifications.*",
-    "apps.invitations.*",
     "apps.audit.*",
     "apps.users.*",
     "apps.authentication.*",
     "services.notifications.*",
     "services.common.*",
     "services.audit.*",
-    "services.invitations.*",
     "services.users.*",
     "services.auth.*",
     "examples.*",
