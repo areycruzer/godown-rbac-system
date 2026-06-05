@@ -103,9 +103,7 @@ django-saas-kit/
 ├── apps/                        # Core Applications
 │   ├── audit/                   # 📄 Context middleware, thread tracking, signals & Celery logs task
 │   ├── authentication/          # 🔐 JWT endpoints, registration, login logic
-│   ├── billing/                 # 💳 Subscription stub/plans logic
 │   ├── common/                  # 🛠 Health Probes, unified exception formats, global DRF permissions
-│   ├── invitations/             # ✉️ Organization member invite serializers & endpoints
 │   ├── notifications/           # 🔔 Simple notifications service hooks
 │   ├── rbac/                    # 🔑 Permissions registries, Role definitions, mappings
 │   ├── tenants/                 # 🏢 Multi-tenant workspace resolution, Feature Flags
