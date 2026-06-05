@@ -696,7 +696,30 @@
                     </div>
                     <button class="btn btn--primary mt-md" onclick="assignUserRole()">Assign</button>
                 </div>
+
+                <div class="card" style="margin-top: 1rem;">
+                    <div class="card-title">Active Members &amp; Role Assignments</div>
+                    <p class="section-desc" style="font-size: 0.75rem; margin-bottom: 0.75rem; max-width: 100%;">
+                        View and manage active users and their roles in this organization. Revoking a role removes the user's access from the organization.
+                    </p>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Assigned Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="memberRolesBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
+
 
             <!-- TAB 2 ── Feature Flags ── -->
             <div id="tab2" class="tab-panel">
@@ -762,6 +785,7 @@
                 showLoggedIn();
                 fetchPermissions();
                 fetchActiveContext();
+                fetchMemberRoles();
             }
         };
 
@@ -795,6 +819,7 @@
                 showNotification("Authenticated successfully");
                 fetchPermissions();
                 fetchActiveContext();
+                fetchMemberRoles();
             } catch (err) {
                 showNotification(err.message, 'error');
             }
@@ -809,6 +834,7 @@
             document.getElementById("authBadge").className = "tag tag--red";
             document.getElementById("authBadge").innerText = "unauthenticated";
             document.getElementById("tenantBadge").style.display = "none";
+            document.getElementById("memberRolesBody").innerHTML = "";
             showNotification("Disconnected");
         }
 
@@ -828,6 +854,7 @@
             if (token) {
                 showLoggedIn();
                 fetchActiveContext();
+                fetchMemberRoles();
                 if (activeTab === 3) fetchAuditLogs();
             }
         }
@@ -964,6 +991,71 @@
                 }
                 showNotification("Role assigned: " + roleSlug);
                 fetchActiveContext();
+                fetchMemberRoles();
+            } catch (err) {
+                showNotification(err.message, 'error');
+            }
+        }
+
+        async function fetchMemberRoles() {
+            const tenantId = document.getElementById("tenantId").value;
+            if (!token) return;
+            const tbody = document.getElementById("memberRolesBody");
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/roles/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-Tenant-ID': tenantId
+                    }
+                });
+                if (!res.ok) throw new Error("Failed to load members.");
+                const data = await res.json();
+                tbody.innerHTML = "";
+                if (data && data.length > 0) {
+                    data.forEach(m => {
+                        const tr = document.createElement("tr");
+                        const date = new Date(m.created_at).toLocaleDateString();
+                        const isSelf = m.username === document.getElementById("username").value;
+                        const actionBtn = isSelf 
+                            ? `<span class="text-muted" style="font-size:0.75rem;">current user</span>`
+                            : `<button class="btn btn--secondary btn--sm" style="color:var(--red); border-color:var(--red-border); padding: 0.2rem 0.5rem;" onclick="revokeUserRole(${m.user_id})">Revoke</button>`;
+                        
+                        tr.innerHTML = `
+                            <td class="mono text-sm">${m.username}</td>
+                            <td><span class="tag tag--amber">${m.role_slug}</span></td>
+                            <td>${date}</td>
+                            <td>${actionBtn}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;">No members assigned.</td></tr>';
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--red);">${err.message}</td></tr>`;
+            }
+        }
+
+        async function revokeUserRole(userId) {
+            if (!confirm("Are you sure you want to revoke this member's role?")) return;
+            const tenantId = document.getElementById("tenantId").value;
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/roles/revoke/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-Tenant-ID': tenantId
+                    },
+                    body: JSON.stringify({ user_id: userId })
+                });
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail || "Failed to revoke role.");
+                }
+                showNotification("Role revoked successfully.");
+                fetchActiveContext();
+                fetchMemberRoles();
             } catch (err) {
                 showNotification(err.message, 'error');
             }

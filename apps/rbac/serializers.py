@@ -42,6 +42,7 @@ class RoleCreateSerializer(serializers.Serializer):  # type: ignore[type-arg]
 
 
 class UserTenantRoleSerializer(serializers.ModelSerializer):  # type: ignore[type-arg]
+    user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     tenant_name = serializers.CharField(source="tenant.name", read_only=True)
     role_name = serializers.CharField(source="role.name", read_only=True)
@@ -49,8 +50,9 @@ class UserTenantRoleSerializer(serializers.ModelSerializer):  # type: ignore[typ
 
     class Meta:
         model = UserTenantRole
-        fields = ("id", "username", "tenant_name", "role_name", "role_slug", "created_at")
+        fields = ("id", "user_id", "username", "tenant_name", "role_name", "role_slug", "created_at")
         read_only_fields = fields
+
 
 
 class RoleAssignSerializer(serializers.Serializer):  # type: ignore[type-arg]
