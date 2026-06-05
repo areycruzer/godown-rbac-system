@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Godown — Multi-Tenant Administration Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0b0f19;
+            --bg-surface: #131a2c;
+            --bg-card: #1c253d;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #2e3a59;
+            --border-hover: #475a8a;
+            --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            line-height: 1.5;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .auth-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background-color: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-info {
+            background-color: var(--primary-glow);
+            color: var(--primary);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            background-color: var(--bg-surface);
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-family: var(--font-family);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            color: var(--text-main);
+            font-family: var(--font-family);
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-family: var(--font-family);
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-card);
+            border-color: var(--border-hover);
+            box-shadow: none;
+        }
+
+        .btn-accent {
+            background-color: var(--accent);
+        }
+
+        .btn-accent:hover {
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: var(--bg-card);
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-item input {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Features Cards styling */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .feature-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        /* Toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-muted);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+            background-color: white;
+        }
+
+        /* Audit Logs table */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            background-color: var(--bg-card);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: var(--bg-surface);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        td {
+            font-size: 0.9rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .code-block {
+            font-family: "Courier New", Courier, monospace;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--accent);
+            white-space: pre-wrap;
+            max-width: 300px;
+            overflow-x: auto;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--primary);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 1000;
+            transform: translateY(150%);
+            transition: var(--transition);
+        }
+
+        .notification.show {
+            transform: translateY(0);
+        }
+
+        .flex-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-icon">G</div>
+            <div>
+                <h1>Godown Control Center</h1>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">Multi-Tenant Administration Console</p>
+            </div>
+        </div>
+        <div class="auth-status">
+            <span id="authBadge" class="badge badge-danger">Not Authenticated</span>
+            <span id="tenantBadge" class="badge badge-info" style="display: none;">Tenant One</span>
+        </div>
+    </header>
+
+    <div class="grid">
+        <!-- Sidebar controls -->
+        <div class="sidebar">
+            <!-- Authentication Panel -->
+            <div class="card">
+                <h2>1. Connection Profile</h2>
+                <div class="form-group">
+                    <label for="tenantId">Tenant / Organization</label>
+                    <select id="tenantId" onchange="switchTenant()">
+                        <option value="00000000-0000-4000-8000-000000000001" selected>Tenant One (Localhost)</option>
+                        <option value="00000000-0000-4000-8000-000000000002">Tenant Two (Localhost)</option>
+                    </select>
+                </div>
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" value="admin@tenant1.localhost">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" value="password123">
+                    </div>
+                    <button class="btn" style="width: 100%;" onclick="login()">Authenticate Client</button>
+                </div>
+                <div id="logoutForm" style="display: none;">
+                    <div class="form-group" style="margin-bottom: 0.5rem;">
+                        <label>Active User</label>
+                        <p id="loggedUser" style="font-weight: 500;"></p>
+                    </div>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="logout()">Disconnect</button>
+                </div>
+            </div>
+
+            <!-- Current User Context Summary -->
+            <div class="card" id="contextCard" style="display: none;">
+                <h2>2. Active Auth Context</h2>
+                <div class="form-group" style="margin-bottom: 0.75rem;">
+                    <label>Assigned Role</label>
+                    <div class="flex-row">
+                        <span id="ctxRole" class="badge badge-info">-</span>
+                        <span id="ctxWeight" class="badge badge-success">Weight: -</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Granted Permissions</label>
+                    <div id="ctxPermissions" class="flex-row" style="gap: 0.25rem;">
+                        <!-- badged elements -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="main-content">
+            <div class="tabs">
+                <button id="tabBtn1" class="tab-btn active" onclick="switchTab(1)">Dynamic RBAC</button>
+                <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">Feature Flags</button>
+                <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">Audit Logging</button>
+            </div>
+
+            <!-- TAB 1: Dynamic RBAC -->
+            <div id="tab1" class="tab-panel active">
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- Create Custom Role Card -->
+                    <div class="card">
+                        <h2>Create Custom Role Definition</h2>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 100px; gap: 1rem;">
+                            <div class="form-group">
+                                <label for="roleName">Role Name</label>
+                                <input type="text" id="roleName" placeholder="e.g. Procurement Officer">
+                            </div>
+                            <div class="form-group">
+                                <label for="roleSlug">Role Slug</label>
+                                <input type="text" id="roleSlug" placeholder="e.g. procurement-officer">
+                            </div>
+                            <div class="form-group">
+                                <label for="roleWeight">Weight</label>
+                                <input type="number" id="roleWeight" value="15">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Attach Permissions Registry</label>
+                            <div id="permissionsCheckboxList" class="checkbox-grid">
+                                <!-- Loaded dynamically -->
+                            </div>
+                        </div>
+                        <button class="btn btn-accent" onclick="createCustomRole()">Define Custom Role</button>
+                    </div>
+
+                    <!-- Assign Role Card -->
+                    <div class="card">
+                        <h2>Assign Workspace Role to Member</h2>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label for="assignUserId">Target User ID (Numeric pk)</label>
+                                <input type="number" id="assignUserId" value="1" placeholder="User ID">
+                            </div>
+                            <div class="form-group">
+                                <label for="assignRoleSlug">Workspace Role Slug</label>
+                                <select id="assignRoleSlug">
+                                    <option value="owner">owner</option>
+                                    <option value="admin">admin</option>
+                                    <option value="member">member</option>
+                                    <!-- Custom roles appended here -->
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="assignUserRole()">Modify Role Assignment</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Feature Flags -->
+            <div id="tab2" class="tab-panel">
+                <div class="card">
+                    <h2>Workspace Feature Flag Registry</h2>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+                        Toggles below enforce dynamic capability locks. Global values fall back dynamically unless tenant specific overrides exist.
+                    </p>
+                    <div class="feature-grid" id="featureFlagsGrid">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: Audit Logging -->
+            <div id="tab3" class="tab-panel">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2>Live Organization Audit Trail</h2>
+                        <button class="btn btn-secondary" onclick="fetchAuditLogs()">Refresh Logs</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Action</th>
+                                    <th>Target Resource</th>
+                                    <th>Actor</th>
+                                    <th>Delta Changes</th>
+                                    <th>IP / Agent</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="notification">
+        <span id="toastMessage">Console Connection Updated</span>
+    </div>
+
+    <script>
+        let token = localStorage.getItem("jwt_token") || null;
+        let activeTab = 1;
+        const apiBaseUrl = ""; // same origin since it is served by Django
+
+        window.onload = function() {
+            if (token) {
+                showLoggedIn();
+                fetchPermissions();
+                fetchActiveContext();
+            }
+        };
+
+        function showNotification(message, type = 'success') {
+            const toast = document.getElementById("toast");
+            const msgSpan = document.getElementById("toastMessage");
+            msgSpan.innerText = message;
+            toast.style.borderLeftColor = type === 'error' ? 'var(--danger)' : 'var(--primary)';
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3000);
+        }
+
+        async function login() {
+            const user = document.getElementById("username").value;
+            const pass = document.getElementById("password").value;
+
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/auth/token/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+
+                if (!res.ok) throw new Error("Invalid connection credentials.");
+
+                const data = await res.json();
+                token = data.access;
+                localStorage.setItem("jwt_token", token);
+                showLoggedIn();
+                showNotification("Client Authenticated Successfully!");
+                
+                // Fetch dynamic metadata
+                fetchPermissions();
+                fetchActiveContext();
+            } catch (err) {
+                showNotification(err.message, 'error');
+            }
+        }
+
+        function logout() {
+            token = null;
+            localStorage.removeItem("jwt_token");
+            document.getElementById("loginForm").style.display = "block";
+            document.getElementById("logoutForm").style.display = "none";
+            document.getElementById("contextCard").style.display = "none";
+            document.getElementById("authBadge").className = "badge badge-danger";
+            document.getElementById("authBadge").innerText = "Not Authenticated";
+            document.getElementById("tenantBadge").style.display = "none";
+            showNotification("Client Disconnected.");
+        }
+
+        function showLoggedIn() {
+            document.getElementById("loginForm").style.display = "none";
+            document.getElementById("logoutForm").style.display = "block";
+            document.getElementById("loggedUser").innerText = document.getElementById("username").value;
+            document.getElementById("authBadge").className = "badge badge-success";
+            document.getElementById("authBadge").innerText = "Connected";
+            
+            const sel = document.getElementById("tenantId");
+            const label = sel.options[sel.selectedIndex].text;
+            document.getElementById("tenantBadge").style.display = "inline-flex";
+            document.getElementById("tenantBadge").innerText = label;
+        }
+
+        function switchTenant() {
+            if (token) {
+                showLoggedIn();
+                fetchActiveContext();
+                if (activeTab === 3) fetchAuditLogs();
+            }
+        }
+
+        async function fetchActiveContext() {
+            const tenantId = document.getElementById("tenantId").value;
+            if (!token) return;
+
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/me/`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'X-Tenant-ID': tenantId
+                    }
+                });
+                if (!res.ok) throw new Error("Failed to load context.");
+                const data = await res.json();
+
+                document.getElementById("contextCard").style.display = "block";
+                
+                const roleBadge = document.getElementById("ctxRole");
+                const weightBadge = document.getElementById("ctxWeight");
+                
+                if (data.role) {
+                    roleBadge.innerText = data.role.name;
+                    roleBadge.className = "badge badge-info";
+                    weightBadge.innerText = `Weight: ${data.role.weight}`;
+                } else {
+                    roleBadge.innerText = "No Role";
+                    roleBadge.className = "badge badge-danger";
+                    weightBadge.innerText = "Weight: 0";
+                }
+
+                // Render permissions
+                const permDiv = document.getElementById("ctxPermissions");
+                permDiv.innerHTML = "";
+                if (data.permissions && data.permissions.length > 0) {
+                    data.permissions.forEach(code => {
+                        const s = document.createElement("span");
+                        s.className = "badge badge-success";
+                        s.style.fontSize = "0.7rem";
+                        s.innerText = code;
+                        permDiv.appendChild(s);
+                    });
+                } else {
+                    permDiv.innerHTML = `<span style="font-size: 0.8rem; color: var(--text-muted);">None</span>`;
+                }
+
+                // Update feature flags UI if active tab is features
+                if (activeTab === 2) {
+                    renderFeaturesList(data.features || []);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function fetchPermissions() {
+            if (!token) return;
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/rbac/permissions/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                
+                const div = document.getElementById("permissionsCheckboxList");
+                div.innerHTML = "";
+                data.forEach(p => {
+                    const label = document.createElement("label");
+                    label.className = "checkbox-item";
+                    label.innerHTML = `
+                        <input type="checkbox" name="rolePerms" value="${p.code}">
+                        <span>${p.code}</span>
+                    `;
+                    div.appendChild(label);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function createCustomRole() {
+            const tenantId = document.getElementById("tenantId").value;
+            const name = document.getElementById("roleName").value;
+            const slug = document.getElementById("roleSlug").value;
+            const weight = parseInt(document.getElementById("roleWeight").value) || 0;
+            
+            const checkboxes = document.querySelectorAll('input[name="rolePerms"]:checked');
+            const permission_codes = Array.from(checkboxes).map(cb => cb.value);
+
+            if (!name || !slug) {
+                showNotification("Name and Slug are required.", 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/role-definitions/`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-Tenant-ID': tenantId
+                    },
+                    body: JSON.stringify({ name, slug, weight, permission_codes })
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail || "Failed to create custom role.");
+                }
+
+                showNotification("Custom Role Created Successfully!");
+                
+                // Append custom role to assign selector
+                const select = document.getElementById("assignRoleSlug");
+                const opt = document.createElement("option");
+                opt.value = slug;
+                opt.text = slug;
+                select.appendChild(opt);
+
+                // Clear input fields
+                document.getElementById("roleName").value = "";
+                document.getElementById("roleSlug").value = "";
+                
+            } catch (err) {
+                showNotification(err.message, 'error');
+            }
+        }
+
+        async function assignUserRole() {
+            const tenantId = document.getElementById("tenantId").value;
+            const userId = parseInt(document.getElementById("assignUserId").value);
+            const roleSlug = document.getElementById("assignRoleSlug").value;
+
+            if (!userId) {
+                showNotification("User ID is required.", 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/rbac/${tenantId}/roles/assign/`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-Tenant-ID': tenantId
+                    },
+                    body: JSON.stringify({ user_id: userId, role: roleSlug })
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail || "Failed to assign role.");
+                }
+
+                showNotification("User Role Assigned Successfully!");
+                fetchActiveContext();
+            } catch (err) {
+                showNotification(err.message, 'error');
+            }
+        }
+
+        async function renderFeaturesList(activeFeatures) {
+            const tenantId = document.getElementById("tenantId").value;
+            const container = document.getElementById("featureFlagsGrid");
+            container.innerHTML = "";
+
+            const defaultFeatures = [
+                "procurement_v2_enabled",
+                "custom_routing_rules",
+                "advanced_audit_reports"
+            ];
+
+            defaultFeatures.forEach(feat => {
+                const isActive = activeFeatures.includes(feat);
+                const card = document.createElement("div");
+                card.className = "feature-card";
+                card.innerHTML = `
+                    <div>
+                        <p style="font-weight: 600; font-size: 0.95rem;">${feat}</p>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">${isActive ? 'Active' : 'Locked'}</p>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleFeature('${feat}', this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function toggleFeature(name, isChecked) {
+            const tenantId = document.getElementById("tenantId").value;
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/tenants/${tenantId}/features/toggle/`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-Tenant-ID': tenantId
+                    },
+                    body: JSON.stringify({ name: name, is_active: isChecked })
+                });
+
+                if (!res.ok) {
+                    throw new Error("Unable to modify feature toggles.");
+                }
+
+                showNotification(`Feature toggle modified: ${name}`);
+                fetchActiveContext();
+            } catch (err) {
+                showNotification(err.message, 'error');
+            }
+        }
+
+        async function fetchAuditLogs() {
+            const tenantId = document.getElementById("tenantId").value;
+            const tbody = document.getElementById("auditLogsBody");
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading logs...</td></tr>`;
+
+            try {
+                const res = await fetch(`${apiBaseUrl}/api/v1/audit-logs/`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'X-Tenant-ID': tenantId
+                    }
+                });
+
+                if (!res.ok) {
+                    throw new Error("Unable to retrieve audit logs.");
+                }
+
+                const data = await res.json();
+                tbody.innerHTML = "";
+
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(log => {
+                        const tr = document.createElement("tr");
+                        const date = new Date(log.timestamp).toLocaleString();
+                        const actor = log.actor_email || "System/Signal";
+                        const ip = log.ip_address || "-";
+                        
+                        let deltaContent = `<span style="color: var(--text-muted);">No changes</span>`;
+                        if (log.changes && Object.keys(log.changes).length > 0) {
+                            deltaContent = `<pre class="code-block">${JSON.stringify(log.changes, null, 2)}</pre>`;
+                        }
+
+                        tr.innerHTML = `
+                            <td>${date}</td>
+                            <td><span class="badge badge-info">${log.action}</span></td>
+                            <td>${log.resource_type} (${log.resource_id})</td>
+                            <td>${actor}</td>
+                            <td>${deltaContent}</td>
+                            <td>${ip}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No audit trails generated yet.</td></tr>`;
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">${err.message}</td></tr>`;
+            }
+        }
+
+        function switchTab(tabNum) {
+            activeTab = tabNum;
+            document.getElementById("tabBtn1").classList.remove("active");
+            document.getElementById("tabBtn2").classList.remove("active");
+            document.getElementById("tabBtn3").classList.remove("active");
+            document.getElementById("tab1").classList.remove("active");
+            document.getElementById("tab2").classList.remove("active");
+            document.getElementById("tab3").classList.remove("active");
+
+            document.getElementById(`tabBtn${tabNum}`).classList.add("active");
+            document.getElementById(`tab${tabNum}`).classList.add("active");
+
+            if (tabNum === 2) {
+                fetchActiveContext();
+            } else if (tabNum === 3) {
+                fetchAuditLogs();
+            }
+        }
+    </script>
+</body>
+</html>
