@@ -12,7 +12,16 @@ This project is built using a clean **Service Layer** pattern to isolate core bu
 
 ---
 
+## 🎥 Live Interactive Console Demo
+
+Here is a walk-through of the live Dynamic RBAC Administration Console (showing authentication, custom role definitions with dynamic permissions checkboxes, active member directory listing, role assignment/revocation, feature flag toggles, and live audit trailing with delta JSON mutations):
+
+![godown console walkthrough](live_site_check.webp)
+
+---
+
 ## 🎨 System Architecture
+
 
 ### 1. Database & RBAC Schema Relationships
 The system utilizes a shared-database design with dynamic tenant-level logical separation. Roles are tenant-scoped and permissions are mapped dynamically.
