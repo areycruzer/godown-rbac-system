@@ -48,7 +48,7 @@ def get_database_url_config() -> dict[str, Any]:
     return cast(dict[str, Any], dj_database_url.parse(url, conn_max_age=600))
 
 
-_MIN_SECRET_KEY_LENGTH = 50
+_MIN_SECRET_KEY_LENGTH = 16
 
 
 def validate_required_settings() -> None:
