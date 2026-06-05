@@ -29,14 +29,17 @@ class DemoSeedResult:
 class DemoSeedService:
     """Idempotent demo data for local development and API exploration."""
 
-    # TODO: Add your business logic here
-
     @staticmethod
     @transaction.atomic
     def seed() -> DemoSeedResult:
         _seeding.active = True
         try:
-            tenants = tuple(DemoSeedService._ensure_tenants())
+            # 1. Seed global permissions registry
+            permissions = DemoSeedService._ensure_permissions()
+            
+            # 2. Seed tenants and set default roles + permissions mapping
+            tenants = tuple(DemoSeedService._ensure_tenants(permissions))
+            
             admin_user = DemoSeedService._ensure_admin_user()
             tenant1 = next(t for t in tenants if t.slug == "tenant1")
             RBACService.assign_role(admin_user, tenant1, "admin")
@@ -45,7 +48,47 @@ class DemoSeedService:
             _seeding.active = False
 
     @staticmethod
-    def _ensure_tenants() -> list[Tenant]:
+    def _ensure_permissions() -> dict[str, Permission]:
+        # Define default permissions to seed
+        permissions_data = [
+            ("user:invite", "Invite a new user to the tenant"),
+            ("po:create", "Create a Purchase Order"),
+            ("po:approve", "Approve a Purchase Order"),
+            ("grn:create", "Create a Goods Received Note"),
+            ("audit:view", "View the tenant audit logs"),
+            ("feature:toggle", "Toggle tenant feature flags"),
+        ]
+        
+        perms = {}
+        for code, desc in permissions_data:
+            perm = RBACService.get_or_create_permission(code, desc)
+            perms[code] = perm
+        return perms
+
+    @staticmethod
+    def _ensure_tenants(permissions: dict[str, Permission]) -> list[Tenant]:
+        # Define roles to permissions mapping
+        role_permissions_mapping = {
+            "owner": [
+                "user:invite",
+                "po:create",
+                "po:approve",
+                "grn:create",
+                "audit:view",
+                "feature:toggle",
+            ],
+            "admin": [
+                "user:invite",
+                "po:create",
+                "grn:create",
+                "audit:view",
+            ],
+            "member": [
+                "po:create",
+                "grn:create",
+            ],
+        }
+
         tenants: list[Tenant] = []
         for spec in DEMO_TENANTS:
             tenant, _ = Tenant.objects.update_or_create(
@@ -61,7 +104,16 @@ class DemoSeedService:
                 domain=f"{spec.slug}.localhost",
                 defaults={"is_primary": True},
             )
-            RBACService.create_default_roles(tenant)
+            
+            # Create default roles
+            roles = RBACService.create_default_roles(tenant)
+            
+            # Map permissions to roles
+            for role in roles:
+                allowed_codes = role_permissions_mapping.get(role.slug, [])
+                role_perms = [permissions[code] for code in allowed_codes if code in permissions]
+                role.permissions.set(role_perms)
+
             tenants.append(tenant)
         return tenants
 
@@ -81,3 +133,4 @@ class DemoSeedService:
         user.set_password(DEMO_ADMIN.password)
         user.save()
         return user
+

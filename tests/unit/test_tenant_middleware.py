@@ -2,7 +2,7 @@
 
 Tests cover:
   - Known active subdomain  → request.tenant is set correctly
-  - Unknown subdomain       → 404
+  - Unknown subdomain       → request.tenant = None (pass-through)
   - Inactive tenant         → 403
   - Port stripping          → "tenant1.localhost:8000" resolves correctly
   - Exempt paths            → bypass middleware (request.tenant = None)
@@ -66,12 +66,14 @@ def test_known_subdomain_sets_request_tenant(active_tenant):
     assert request.tenant == active_tenant
 
 
-def test_unknown_subdomain_returns_404():
+def test_unknown_subdomain_sets_tenant_to_none():
+    """Unknown hosts pass through with request.tenant = None."""
     request = _make_request("/api/v1/", "ghost.localhost")
     middleware = TenantMiddleware(_get_response)
     response = middleware(request)
 
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert request.tenant is None
 
 
 def test_inactive_tenant_returns_403(inactive_tenant):
@@ -124,7 +126,7 @@ def test_exempt_paths_skip_resolution(path):
 # ---------------------------------------------------------------------------
 
 
-def test_404_response_body():
+def test_unknown_host_response_body():
     import json
 
     request = _make_request("/api/v1/", "nobody.localhost")
@@ -132,8 +134,9 @@ def test_404_response_body():
     response = middleware(request)
 
     body = json.loads(response.content)
-    assert body["error"] == "not_found"
-    assert response.status_code == 404
+    # Passes through with tenant=None, sentinel view returns 200
+    assert response.status_code == 200
+    assert body["tenant"] == "None"
 
 
 def test_403_response_body(inactive_tenant):

@@ -93,9 +93,8 @@ class TenantRoleListView(APIView):
 
 class RoleDefinitionListView(APIView):
     """
-    GET /api/v1/rbac/<tenant_id>/role-definitions/
-
-    List all role definitions (with permissions) for a tenant.
+    GET  /api/v1/rbac/<tenant_id>/role-definitions/ — list all role definitions
+    POST /api/v1/rbac/<tenant_id>/role-definitions/ — create a custom role
     """
 
     permission_classes = [IsAuthenticated, HasRolePermission]
@@ -112,17 +111,6 @@ class RoleDefinitionListView(APIView):
         serializer = RoleSerializer(roles, many=True)
         return Response(serializer.data)
 
-
-class RoleCreateView(APIView):
-    """
-    POST /api/v1/rbac/<tenant_id>/role-definitions/
-
-    Create a custom role for a tenant. Requires owner or admin.
-    """
-
-    permission_classes = [IsAuthenticated, HasRolePermission]
-    required_roles = ["owner", "admin"]
-
     @extend_schema(
         tags=["RBAC"],
         summary="Create a custom role",
@@ -130,6 +118,13 @@ class RoleCreateView(APIView):
         responses={201: RoleSerializer},
     )
     def post(self, request: Request, tenant_id: str) -> Response:
+        # Creating roles requires owner or admin (stricter than listing)
+        if not RBACService.has_role(request.user, get_object_or_404(Tenant, id=tenant_id), ["owner", "admin"]):
+            return Response(
+                {"detail": "You do not have the required role to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         tenant = get_object_or_404(Tenant, id=tenant_id)
         serializer = RoleCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
