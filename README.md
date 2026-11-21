@@ -1,30 +1,22 @@
-# 🛡️ godown — Dynamic RBAC & Feature Control System
+# godown: multi-tenant RBAC and feature flags for Django REST Framework
 
 [![CI](https://github.com/areycruzer/godown-rbac-system/actions/workflows/ci.yml/badge.svg)](https://github.com/areycruzer/godown-rbac-system/actions/workflows/ci.yml)
-[![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
-[![Django Version](https://img.shields.io/badge/django-5.x-green.svg)](https://djangoproject.com)
-[![DRF Version](https://img.shields.io/badge/DRF-3.15-red.svg)](https://django-rest-framework.org)
-[![Code Style](https://img.shields.io/badge/code%20style-ruff-black.svg)](https://github.com/astral-sh/ruff)
 
-A robust, multi-tenant Django + Django REST Framework (DRF) backend implementation of a dynamic **Role-Based Access Control (RBAC)** engine, **Feature Controls**, and a signal-driven **Audit Logging** system.
+A Django and Django REST Framework backend with three parts:
 
-This project is built using a clean **Service Layer** pattern to isolate core business rules from HTTP translation layers, presenting a production-grade codebase perfect for enterprise SaaS platforms.
+- **Multi-tenancy.** Each request is resolved to an organization (tenant) from the subdomain or an `X-Tenant-ID` header.
+- **Dynamic role-based access control.** Tenant admins create their own roles, attach permissions to them, and assign them to members.
+- **Feature flags and audit logs.** Features can be switched on or off globally or per tenant, and changes are recorded with a before and after diff.
 
----
+Business rules live in a service layer (`services/`), separate from the DRF views in `apps/`. The test suite has 268 tests and runs in CI against PostgreSQL 17.
 
-## 🎥 Live Interactive Console Demo
+![Walkthrough of the admin console: login, creating a role, assigning it, toggling a feature flag, and the audit trail](docs/assets/console-walkthrough.webp)
 
-Here is a walk-through of the live Dynamic RBAC Administration Console (showing authentication, custom role definitions with dynamic permissions checkboxes, active member directory listing, role assignment/revocation, feature flag toggles, and live audit trailing with delta JSON mutations):
+## How it works
 
-![godown console walkthrough](live_site_check.webp)
+### Data model
 
----
-
-## 🎨 System Architecture
-
-
-### 1. Database & RBAC Schema Relationships
-The system utilizes a shared-database design with dynamic tenant-level logical separation. Roles are tenant-scoped and permissions are mapped dynamically.
+Tenants share one database. Roles, role assignments and feature flag overrides all carry a tenant, so every check is scoped to the current organization.
 
 ```mermaid
 erDiagram
@@ -37,152 +29,106 @@ erDiagram
     FeatureFlag }|--|| Tenant : "optionally overrides"
 ```
 
-### 2. Request Lifecycle & Security Gate
-The middleware dynamically scopes the host context. The unified `IsTenantAuthorized` permission class validates requests by gating both features and RBAC requirements:
+### Request path
+
+`TenantMiddleware` resolves the tenant. The `IsTenantAuthorized` permission class then checks the feature flag first and the role permission second.
 
 ```mermaid
 flowchart TD
-    A[Client Request] --> B[TenantMiddleware]
-    B -->|Resolves Tenant from Host/Header| C[Resolved Tenant Context]
+    A[Client request] --> B[TenantMiddleware]
+    B -->|Tenant from host or header| C[Tenant context]
     C --> D{IsTenantAuthorized}
-    D -->|Check 1: Feature Gate| E{Feature Flag Active?}
+    D -->|Check 1: feature gate| E{Feature flag on?}
     E -->|No| F[403 Forbidden]
-    E -->|Yes / Bypassed| G{Check 2: RBAC Gate}
-    G -->|No / Insufficient Weight| F
-    G -->|Yes / Bypassed| H[Allow Endpoint Execution]
+    E -->|Yes| G{Check 2: role permission}
+    G -->|No| F
+    G -->|Yes| H[View runs]
 ```
 
-### 3. Async Audit Trail Logging
-Every DB mutation triggers signals that capture pre- and post-states to create a delta diff. This diff is offloaded asynchronously to Celery tasks to minimize request latency:
+### Audit log
+
+Model changes fire Django signals that capture the state before and after the change. The diff is written to the audit log by a Celery task, so the request does not wait for it.
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant View as DRF View
+    participant View as DRF view
     participant DB as Database
-    participant Celery as Celery Worker
-    
-    Client->>View: Request mutation (e.g. create role)
+    participant Celery as Celery worker
+    Client->>View: Create role
     View->>DB: Save object
-    DB-->>View: Object saved
-    Note over View: Django Signal triggers (post_save/etc.)
-    View->>Celery: Enqueue log task (Action + Delta Diff)
-    View-->>Client: HTTP 201 Response (immediate)
-    Note over Celery: Async worker runs log task
-    Celery->>DB: Create AuditLog record
+    Note over View: post_save signal builds the diff
+    View->>Celery: Enqueue audit task
+    View-->>Client: 201 Created
+    Celery->>DB: Insert AuditLog row
 ```
 
----
+## Features
 
-## 📋 Key Solutions & Realizations
+- **Tenants.** Creating a tenant seeds default `owner`, `admin` and `member` roles with their permissions.
+- **Permissions.** Permissions are registered globally as codes such as `po:create`, `grn:create` and `audit:view`.
+- **Custom roles.** Tenant admins can define roles such as "Procurement Officer" and bind any set of permissions to them.
+- **Role weights.** Each role has a numeric weight, so code can check whether a user is at least an admin.
+- **Feature flags.** Flags have a global default and an optional per-tenant override. One permission class checks both the flag and the role.
+- **Audit trail.** Logins, failed logins, role changes and permission changes are recorded, with field-level before and after values stored as JSON.
 
-### 🏢 1. Multi-Organization / Multi-Tenancy
-- **Shared-Database Isolation**: Each organization (tenant) is isolated dynamically. Subdomains or explicit headers (`X-Tenant-ID`) map requests to their workspace context.
-- **Auto-Seeded Roles**: Creating a tenant seeds standard default roles (`owner`, `admin`, `member`) with correct pre-configured permissions.
+## Project layout
 
-### 🔑 2. Dynamic RBAC Engine
-- **Atomic Permissions**: Capabilities registered globally (e.g., `po:create`, `grn:create`, `audit:view`).
-- **Dynamic Tenant Roles**: Tenant admins can define custom roles on the fly (e.g., "Procurement Officer", weight `15`) and bind them to any array of permissions.
-- **Hierarchy Weights**: Roles carry a numeric weight to allow simple hierarchy checks (e.g. verifying if a user is *at least* an administrator).
-
-### ⚙️ 3. Feature Controls (On / Off)
-- **Tenant-Scoped Toggles**: Features can be toggled on/off globally or overridden specifically for individual organizations.
-- **Unified Permission Class**: Checks both feature flags and permissions cleanly at the DRF endpoint layer.
-
-### 📄 4. Basic Audit Logs
-- **Activity Tracking**: Tracks login events, permission mutations, and custom role definitions.
-- **Delta History ("Who changed what")**: Captures field-level changes (pre- vs post-state) and stores them in a database JSON field.
-- **Async Execution**: The logging payload creation and database insertions are processed asynchronously off the request-response thread using Celery.
-
----
-
-## 📂 Project Structure
-
-```bash
-django-saas-kit/
-├── apps/                        # Core Applications
-│   ├── audit/                   # 📄 Context middleware, thread tracking, signals & Celery logs task
-│   ├── authentication/          # 🔐 JWT endpoints, registration, login logic
-│   ├── common/                  # 🛠 Health Probes, unified exception formats, global DRF permissions
-│   ├── notifications/           # 🔔 Simple notifications service hooks
-│   ├── rbac/                    # 🔑 Permissions registries, Role definitions, mappings
-│   ├── tenants/                 # 🏢 Multi-tenant workspace resolution, Feature Flags
-│   └── users/                   # 👤 Profile structures
-├── services/                    # Stateless Business Logic (Core Domain Services)
-│   ├── rbac/                    # Dynamic role assignments & permission evaluations
-│   ├── features/                # Tenant feature toggling & caching evaluations
-│   ├── audit/                   # High-level logging abstraction layer
-│   └── demo/                    # Rapid seeder for local sandbox setup
-├── tests/                       # Complete Test Suites (Unit & Integration)
-└── examples/frontend/           # 💡 Next.js integration UI helpers (React Providers, Guards)
+```
+godown-rbac-system/
+├── apps/
+│   ├── audit/            # signals, audit middleware, Celery logging task
+│   ├── authentication/   # JWT login, registration
+│   ├── common/           # health checks, error format, shared permissions
+│   ├── notifications/    # notification hooks
+│   ├── rbac/             # permission registry, roles, assignments
+│   ├── tenants/          # tenant resolution, feature flags
+│   └── users/            # user profiles
+├── services/             # business logic used by the views
+│   ├── rbac/
+│   ├── features/
+│   ├── audit/
+│   └── demo/             # demo data seeder
+├── tests/                # unit, service and integration tests
+└── examples/frontend/    # Next.js helpers: auth context and a <Guard> component
 ```
 
----
+## Run it locally
 
-## 🚀 Quickstart & Setup
-
-### 1. Install Dependencies
-Set up your virtual environment and install the unified dependencies list:
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. Configure Environment
-Copy the default environment template:
-```bash
-cp .env.example .env
-```
-
-### 3. Database Setup & Migrations
-Run the migrations to create the SQLite tables and apply dynamic RBAC schemas:
-```bash
-python manage.py migrate
-```
-
-### 4. Seed Sandbox Data
-Seed the local database with dummy organizations, users, default roles, and permissions:
-```bash
-python manage.py seed_demo
-```
-This boots up two demo organizations:
-- **Tenant One**: `tenant1` (`00000000-0000-4000-8000-000000000001`)
-- **Tenant Two**: `tenant2` (`00000000-0000-4000-8000-000000000002`)
-
-It also registers a default administrator account:
-- **Username**: `admin@tenant1.localhost`
-- **Password**: `password123`
-
-### 5. Boot Dev Server
-Start the local server:
-```bash
-python manage.py runserver
-```
-Once running:
-- The **Dynamic RBAC Administration Console** is available at **`http://localhost:8000/`**.
-- Interactive Swagger documentation is available at **`http://localhost:8000/api/docs/`**.
-
----
-
-## Run the tests
-The suite has unit, service, and integration tests. It runs offline on SQLite with an in-memory cache, so no Postgres or Redis server is needed. Settings require three environment variables at import time; the dummy values below are enough for tests:
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
+python manage.py migrate
+python manage.py seed_demo
+python manage.py runserver
+```
+
+`seed_demo` creates two tenants, `tenant1` and `tenant2`, and an admin account for local use only:
+
+- Username: `admin@tenant1.localhost`
+- Password: `password123`
+
+The admin console is at `http://localhost:8000/` and the Swagger docs are at `http://localhost:8000/api/docs/`.
+
+## Run the tests
+
+The tests run offline on SQLite with an in-memory cache, so no Postgres or Redis server is needed. Settings read three environment variables at import time; these dummy values are enough:
+
+```bash
 export SECRET_KEY=test-secret-key-for-testing-only
 export DATABASE_URL=sqlite:////tmp/godown-test.sqlite3
 export REDIS_URL=redis://localhost:6379/0
 pytest -q
 ```
-If `DATABASE_URL` starts with `postgres`, the test settings use that database instead. CI runs the suite against PostgreSQL 17 (see `.github/workflows/ci.yml`).
 
----
+If `DATABASE_URL` starts with `postgres`, the tests use that database instead. CI runs them against PostgreSQL 17 (see `.github/workflows/ci.yml`).
 
-## 💡 Frontend Integration Example (Next.js)
+## Frontend example
 
-Use the declarative `<Guard>` wrapper in your React UI to hide or show components based on active feature toggles and RBAC permissions:
+`examples/frontend/` has a React `<Guard>` component that shows its children only when the user has the permission and the feature is on:
+
 ```tsx
 import { Guard } from '@/components/Guard';
 
@@ -194,4 +140,9 @@ export default function ActionButton() {
   );
 }
 ```
-*Read the full [Frontend Integration Guide](examples/frontend/README.md) for custom hooks and auth context setup.*
+
+See the [frontend guide](examples/frontend/README.md) for the hooks and auth context.
+
+## License
+
+MIT
