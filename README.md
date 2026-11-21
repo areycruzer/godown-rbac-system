@@ -1,9 +1,9 @@
 # 🛡️ godown — Dynamic RBAC & Feature Control System
 
+[![CI](https://github.com/areycruzer/godown-rbac-system/actions/workflows/ci.yml/badge.svg)](https://github.com/areycruzer/godown-rbac-system/actions/workflows/ci.yml)
 [![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
 [![Django Version](https://img.shields.io/badge/django-5.x-green.svg)](https://djangoproject.com)
 [![DRF Version](https://img.shields.io/badge/DRF-3.15-red.svg)](https://django-rest-framework.org)
-[![Tests Status](https://img.shields.io/badge/tests-278%20passed-brightgreen.svg)]()
 [![Code Style](https://img.shields.io/badge/code%20style-ruff-black.svg)](https://github.com/astral-sh/ruff)
 
 A robust, multi-tenant Django + Django REST Framework (DRF) backend implementation of a dynamic **Role-Based Access Control (RBAC)** engine, **Feature Controls**, and a signal-driven **Audit Logging** system.
@@ -165,11 +165,18 @@ Once running:
 
 ---
 
-## 🧪 Running the Verification Suite
-Run pytest to verify all **278 unit, service, and integration tests** (all tests pass):
+## Run the tests
+The suite has unit, service, and integration tests. It runs offline on SQLite with an in-memory cache, so no Postgres or Redis server is needed. Settings require three environment variables at import time; the dummy values below are enough for tests:
 ```bash
-pytest
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export SECRET_KEY=test-secret-key-for-testing-only
+export DATABASE_URL=sqlite:////tmp/godown-test.sqlite3
+export REDIS_URL=redis://localhost:6379/0
+pytest -q
 ```
+If `DATABASE_URL` starts with `postgres`, the test settings use that database instead. CI runs the suite against PostgreSQL 17 (see `.github/workflows/ci.yml`).
 
 ---
 
